@@ -31,36 +31,35 @@ export const KeycloakProvider = ({ children }: { children: ReactNode }) => {
 
 	useEffect(() => {
 		const alreadyRedirected = sessionStorage.getItem("kc-redirected");
-
+	
 		keycloak
 			.init({
 				onLoad: "check-sso",
 				pkceMethod: "S256",
-				silentCheckSsoRedirectUri:
-					window.location.origin + "/silent-check-sso.html",
+				silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
 			})
 			.then((authenticated) => {
 				if (authenticated && !alreadyRedirected) {
 					const roles = keycloak.tokenParsed?.realm_access?.roles || [];
-					const target = roles.includes("admin") ? "/admin" : "/";
 					const currentPath = window.location.pathname;
-
-					// Prevent redirect from private pages
-					const isSafeToRedirect =
-						currentPath === "/" ||
-						currentPath === "/register" ||
-						currentPath === "/login";
-
-					if (isSafeToRedirect) {
+	
+					const isReturningFromKeycloak =
+						currentPath === "/" || currentPath.includes("/auth") || currentPath.includes("/callback");
+	
+					const target = roles.includes("admin") ? "/admin" : "/";
+	
+					// ✅ Always redirect after first login
+					if (isReturningFromKeycloak || !document.referrer.includes(window.location.origin)) {
 						sessionStorage.setItem("kc-redirected", "true");
 						window.location.replace(target);
 					}
 				}
-
+	
 				setInitialized(true);
 			})
 			.catch(() => setInitialized(true));
 	}, []);
+	
 
 
 	if (!initialized) return <div>Loading auth...</div>;
