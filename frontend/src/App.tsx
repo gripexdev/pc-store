@@ -2,10 +2,12 @@ import { Route, Routes } from "react-router-dom";
 import "./App.css";
 import AuthPanel from "./components/AuthPanel";
 import { PrivateRoute } from "./routes/PrivateRoute";
+import { UserRoute } from "./routes/UserRoute";
 import Checkout from "./pages/Checkout";
 import Home from "./pages/Home";
 import AdminDashboard from "./pages/admin";
 import { AdminRoute } from "./routes/AdminRoute";
+import Register from "./pages/Register";
 
 function App() {
 	return (
@@ -20,6 +22,14 @@ function App() {
 			{/* Your Routes below */}
 			<Routes>
 				<Route path="/" element={<Home />} />
+        <Route 
+					path="/register" 
+					element={
+						<UserRoute>
+							<Register />
+						</UserRoute>
+					} 
+				/>
 				<Route
 					path="/checkout"
 					element={

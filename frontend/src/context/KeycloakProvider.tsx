@@ -30,6 +30,8 @@ export const KeycloakProvider = ({ children }: { children: ReactNode }) => {
 	const [initialized, setInitialized] = useState(false);
 
 	useEffect(() => {
+		const alreadyRedirected = sessionStorage.getItem("kc-redirected");
+
 		keycloak
 			.init({
 				onLoad: "check-sso",
@@ -38,16 +40,18 @@ export const KeycloakProvider = ({ children }: { children: ReactNode }) => {
 					window.location.origin + "/silent-check-sso.html",
 			})
 			.then((authenticated) => {
-				const redirectedAlready = sessionStorage.getItem("kc-redirected");
-
-				if (authenticated && !redirectedAlready) {
+				if (authenticated && !alreadyRedirected) {
 					const roles = keycloak.tokenParsed?.realm_access?.roles || [];
+					const target = roles.includes("admin") ? "/admin" : "/";
+					const currentPath = window.location.pathname;
 
-					if (
-						window.location.pathname === "/" ||
-						window.location.pathname.includes("login")
-					) {
-						const target = roles.includes("admin") ? "/admin" : "/";
+					// Prevent redirect from private pages
+					const isSafeToRedirect =
+						currentPath === "/" ||
+						currentPath === "/register" ||
+						currentPath === "/login";
+
+					if (isSafeToRedirect) {
 						sessionStorage.setItem("kc-redirected", "true");
 						window.location.replace(target);
 					}
@@ -57,6 +61,7 @@ export const KeycloakProvider = ({ children }: { children: ReactNode }) => {
 			})
 			.catch(() => setInitialized(true));
 	}, []);
+
 
 	if (!initialized) return <div>Loading auth...</div>;
 
