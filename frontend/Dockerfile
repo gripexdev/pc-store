@@ -1,14 +1,16 @@
-# Use Node.js base image
-FROM node:18
+# Use Node.js Alpine base image for smaller size
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files and install
+# Copy package files first for better caching
 COPY package*.json ./
-RUN npm install
 
-# Copy rest of the app
+# Install dependencies
+RUN npm ci && npm cache clean --force
+
+# Copy source code
 COPY . .
 
 # Expose port

@@ -63,12 +63,15 @@ export async function createUserInKeycloak(
 			}
 		);
 
+		console.log("Keycloak create user response status:", createUserResponse.status);
+		console.log("Keycloak create user response headers:", createUserResponse.headers);
+
 		// Get the user ID from the Location header
 		const locationHeader = createUserResponse.headers.location;
-		const userId = locationHeader.split('/').pop();
+		const userId = locationHeader?.split("/").pop();
 
 		if (!userId) {
-			throw new Error('Failed to get user ID from Keycloak response');
+			throw new Error("Failed to get user ID from Keycloak response");
 		}
 
 		// Step 3: Get user roles and assign 'user' role
