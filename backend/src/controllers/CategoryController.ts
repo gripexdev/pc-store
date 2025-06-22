@@ -51,12 +51,53 @@ export const createCategory = async (
 
 // Get all categories
 export const getAllCategories = async (
-	_req: Request,
+	req: Request,
 	res: Response
 ): Promise<void> => {
 	try {
-		const categories = await Category.find().sort({ createdAt: -1 });
-		res.json(categories);
+		// Extract pagination and search parameters from query string
+		const page = parseInt(req.query.page as string) || 1;
+		const limit = parseInt(req.query.limit as string) || 10;
+		const search = req.query.search as string || "";
+		
+		// Calculate how many documents to skip for pagination
+		// Example: page 1 = skip 0, page 2 = skip 10, page 3 = skip 20
+		const skip = (page - 1) * limit;
+		
+		// Build MongoDB search query - search across name, description, and slug
+		let searchQuery = {};
+		if (search.trim()) {
+			searchQuery = {
+				$or: [
+					{ name: { $regex: search, $options: 'i' } },        // Case-insensitive name search
+					{ description: { $regex: search, $options: 'i' } }, // Case-insensitive description search
+					{ slug: { $regex: search, $options: 'i' } }         // Case-insensitive slug search
+				]
+			};
+		}
+		
+		// Get total count for pagination metadata (fast count query, doesn't fetch data)
+		const totalCategories = await Category.countDocuments(searchQuery);
+		const totalPages = Math.ceil(totalCategories / limit);
+		
+		// Fetch only the categories for current page with search filter
+		const categories = await Category.find(searchQuery)
+			.sort({ createdAt: -1 })  // Newest first
+			.skip(skip)               // Skip previous pages
+			.limit(limit);            // Only get 'limit' number of records
+		
+		// Return categories with pagination metadata for frontend
+		res.json({
+			categories,
+			pagination: {
+				currentPage: page,
+				totalPages,
+				totalCategories,
+				hasNextPage: page < totalPages,
+				hasPrevPage: page > 1,
+				limit
+			}
+		});
 	} catch (err: any) {
 		console.error("Error fetching categories:", err);
 		res.status(500).json({ 
