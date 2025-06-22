@@ -6,6 +6,10 @@ import { UserRoute } from "./routes/UserRoute";
 import Checkout from "./pages/Checkout";
 import Home from "./pages/Home";
 import AdminDashboard from "./pages/admin";
+import AdminProducts from "./pages/admin/products";
+import AdminInventory from "./pages/admin/inventory";
+import AdminCategories from "./pages/admin/categories";
+import AdminPCBuilder from "./pages/admin/pc-builder";
 import { AdminRoute } from "./routes/AdminRoute";
 import Register from "./pages/Register";
 
@@ -46,14 +50,38 @@ function App() {
 						</AdminRoute>
 					}
 				/>
-				{/* <Route
+				<Route
 					path="/admin/products"
 					element={
 						<AdminRoute>
 							<AdminProducts />
 						</AdminRoute>
 					}
-				/> */}
+				/>
+				<Route
+					path="/admin/inventory"
+					element={
+						<AdminRoute>
+							<AdminInventory />
+						</AdminRoute>
+					}
+				/>
+				<Route
+					path="/admin/categories"
+					element={
+						<AdminRoute>
+							<AdminCategories />
+						</AdminRoute>
+					}
+				/>
+				<Route
+					path="/admin/pc-builder"
+					element={
+						<AdminRoute>
+							<AdminPCBuilder />
+						</AdminRoute>
+					}
+				/>
 				{/* <Route
 					path="/admin/orders"
 					element={
