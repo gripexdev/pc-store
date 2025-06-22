@@ -10,6 +10,7 @@ import AdminProducts from "./pages/admin/products";
 import AdminInventory from "./pages/admin/inventory";
 import AdminCategories from "./pages/admin/categories";
 import CategoryNew from "./pages/admin/category-new";
+import CategoryEdit from "./pages/admin/category-edit";
 import AdminPCBuilder from "./pages/admin/pc-builder";
 import { AdminRoute } from "./routes/AdminRoute";
 import Register from "./pages/Register";
@@ -80,6 +81,14 @@ function App() {
 					element={
 						<AdminRoute>
 							<CategoryNew />
+						</AdminRoute>
+					}
+				/>
+				<Route
+					path="/admin/category/edit/:id"
+					element={
+						<AdminRoute>
+							<CategoryEdit />
 						</AdminRoute>
 					}
 				/>

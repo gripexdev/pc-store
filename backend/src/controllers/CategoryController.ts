@@ -1,5 +1,61 @@
 import { Request, Response } from "express";
 import Category, { ICategory } from "../models/Category";
+import cloudinary from "../utils/cloudinary";
+
+/**
+ * Extracts the public_id from a Cloudinary URL
+ * @param url - The Cloudinary URL
+ * @returns The public_id of the image
+ */
+const extractPublicIdFromUrl = (url: string): string | null => {
+	try {
+		// Parse the URL to extract the public_id
+		const urlParts = url.split('/');
+		const uploadIndex = urlParts.findIndex(part => part === 'upload');
+		
+		if (uploadIndex === -1) {
+			console.error('Invalid Cloudinary URL format');
+			return null;
+		}
+		
+		// Get everything after 'upload' and before the file extension
+		const pathAfterUpload = urlParts.slice(uploadIndex + 1).join('/');
+		
+		// Remove version prefix if present (e.g., v1234567890/)
+		const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+		
+		// Remove file extension
+		const publicId = pathWithoutVersion.replace(/\.[^/.]+$/, '');
+		
+		return publicId;
+	} catch (error) {
+		console.error('Error extracting public_id from URL:', error);
+		return null;
+	}
+};
+
+/**
+ * Deletes an image from Cloudinary if it exists
+ * @param imageUrl - The Cloudinary URL of the image to delete
+ */
+const deleteImageFromCloudinary = async (imageUrl: string): Promise<void> => {
+	if (!imageUrl) return;
+	
+	const publicId = extractPublicIdFromUrl(imageUrl);
+	if (!publicId) {
+		console.warn('Could not extract public_id from image URL:', imageUrl);
+		return;
+	}
+
+	try {
+		const result = await cloudinary.uploader.destroy(publicId);
+		console.log('Image deleted from Cloudinary:', publicId, result.result);
+	} catch (error) {
+		console.error('Error deleting image from Cloudinary:', error);
+		// Don't throw error here as we don't want to fail the category update
+		// if image deletion fails
+	}
+};
 
 // Create a new category
 export const createCategory = async (
@@ -149,6 +205,12 @@ export const updateCategory = async (
 			return;
 		}
 
+		// If a new image is being uploaded and it's different from the current one,
+		// delete the old image from Cloudinary to save storage
+		if (image && image !== category.image && category.image) {
+			await deleteImageFromCloudinary(category.image);
+		}
+
 		// Generate new slug if name is being updated
 		let slug = category.slug;
 		if (name && name !== category.name) {
@@ -198,6 +260,11 @@ export const deleteCategory = async (
 				message: "Category not found" 
 			});
 			return;
+		}
+
+		// Delete the category image from Cloudinary if it exists
+		if (category.image) {
+			await deleteImageFromCloudinary(category.image);
 		}
 
 		await Category.findByIdAndDelete(id);

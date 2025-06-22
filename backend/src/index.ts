@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes"; // ✅ this path must be correct
 import categoryRoutes from "./routes/categoryRoutes";
+import cloudinaryRoutes from "./routes/cloudinaryRoutes";
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 
 app.use("/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/cloudinary", cloudinaryRoutes);
 
 app.get("/", (_req, res) => {
 	res.send("API is running");

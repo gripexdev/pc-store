@@ -11,6 +11,66 @@ export interface CloudinaryUploadResponse {
   format: string;
 }
 
+/**
+ * Extracts the public_id from a Cloudinary URL
+ * @param url - The Cloudinary URL (e.g., https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/image.jpg)
+ * @returns The public_id of the image
+ */
+const extractPublicIdFromUrl = (url: string): string | null => {
+  try {
+    // Parse the URL to extract the public_id
+    const urlParts = url.split('/');
+    const uploadIndex = urlParts.findIndex(part => part === 'upload');
+    
+    if (uploadIndex === -1) {
+      console.error('Invalid Cloudinary URL format');
+      return null;
+    }
+    
+    // Get everything after 'upload' and before the file extension
+    const pathAfterUpload = urlParts.slice(uploadIndex + 1).join('/');
+    
+    // Remove version prefix if present (e.g., v1234567890/)
+    const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+    
+    // Remove file extension
+    const publicId = pathWithoutVersion.replace(/\.[^/.]+$/, '');
+    
+    return publicId;
+  } catch (error) {
+    console.error('Error extracting public_id from URL:', error);
+    return null;
+  }
+};
+
+/**
+ * Deletes an image from Cloudinary using the image URL
+ * @param imageUrl - The Cloudinary URL of the image to delete
+ * @returns Promise that resolves when deletion is successful
+ */
+export const deleteImageFromCloudinary = async (imageUrl: string): Promise<void> => {
+  const publicId = extractPublicIdFromUrl(imageUrl);
+  
+  if (!publicId) {
+    throw new Error('Could not extract public_id from image URL');
+  }
+
+  // For security reasons, we'll need to make this request from the backend
+  // since we don't want to expose the API secret in the frontend
+  const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/cloudinary/delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ publicId }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Failed to delete image: ${response.status}`);
+  }
+};
+
 export const uploadImageToCloudinary = async (file: File): Promise<CloudinaryUploadResponse> => {
   console.log('File details:', {
     name: file.name,
