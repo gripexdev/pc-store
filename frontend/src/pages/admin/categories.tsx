@@ -1,7 +1,10 @@
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/AdminLayout";
 import { FolderOpen, Plus } from "lucide-react";
 
 const AdminCategories = () => {
+  const navigate = useNavigate();
+
   return (
     <AdminLayout>
       <div className="mb-8">
@@ -12,7 +15,10 @@ const AdminCategories = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Product Categories</h2>
-          <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+          <button 
+            onClick={() => navigate("/admin/category/new")}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+          >
             <Plus size={16} />
             <span>Add Category</span>
           </button>

@@ -9,6 +9,7 @@ import AdminDashboard from "./pages/admin";
 import AdminProducts from "./pages/admin/products";
 import AdminInventory from "./pages/admin/inventory";
 import AdminCategories from "./pages/admin/categories";
+import CategoryNew from "./pages/admin/category-new";
 import AdminPCBuilder from "./pages/admin/pc-builder";
 import { AdminRoute } from "./routes/AdminRoute";
 import Register from "./pages/Register";
@@ -71,6 +72,14 @@ function App() {
 					element={
 						<AdminRoute>
 							<AdminCategories />
+						</AdminRoute>
+					}
+				/>
+				<Route
+					path="/admin/category/new"
+					element={
+						<AdminRoute>
+							<CategoryNew />
 						</AdminRoute>
 					}
 				/>

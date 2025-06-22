@@ -3,6 +3,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes"; // ✅ this path must be correct
+import categoryRoutes from "./routes/categoryRoutes";
 
 dotenv.config();
 
@@ -13,7 +14,8 @@ const MONGO_URI = process.env.MONGO_URI || "";
 app.use(cors());
 app.use(express.json());
 
-app.use("/auth", authRoutes); // ✅ Make sure this is not calling authRoutes()
+app.use("/auth", authRoutes);
+app.use("/api/categories", categoryRoutes);
 
 app.get("/", (_req, res) => {
 	res.send("API is running");
