@@ -45,12 +45,48 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 };
 
 /**
- * Controller to get all products (for development/testing)
+ * Controller to get all products with pagination and search
  */
-export const getAllProducts = async (_req: Request, res: Response): Promise<void> => {
+export const getAllProducts = async (req: Request, res: Response): Promise<void> => {
   try {
-    const products = await Product.find().populate('category');
-    res.json(products);
+    // Parse query params for pagination and search
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = (req.query.search as string) || "";
+
+    // Build filter for search (name, brand, description)
+    const filter: any = {};
+    if (search.trim()) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { brand: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Count total products matching filter
+    const totalProducts = await Product.countDocuments(filter);
+    const totalPages = Math.ceil(totalProducts / limit);
+    const skip = (page - 1) * limit;
+
+    // Fetch products with pagination and populate category
+    const products = await Product.find(filter)
+      .populate('category')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Pagination info
+    const pagination = {
+      currentPage: page,
+      totalPages,
+      totalProducts,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      limit,
+    };
+
+    res.json({ products, pagination });
   } catch (err: any) {
     console.error("Error fetching products:", err);
     res.status(500).json({ message: err.message || "Failed to fetch products" });
