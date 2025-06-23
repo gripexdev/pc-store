@@ -14,6 +14,7 @@ import CategoryEdit from "./pages/admin/category-edit";
 import AdminPCBuilder from "./pages/admin/pc-builder";
 import { AdminRoute } from "./routes/AdminRoute";
 import Register from "./pages/Register";
+import ProductNew from "./pages/admin/product-new";
 
 function App() {
 	return (
@@ -57,6 +58,14 @@ function App() {
 					element={
 						<AdminRoute>
 							<AdminProducts />
+						</AdminRoute>
+					}
+				/>
+				<Route
+					path="/admin/products/new"
+					element={
+						<AdminRoute>
+							<ProductNew />
 						</AdminRoute>
 					}
 				/>

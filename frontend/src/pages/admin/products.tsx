@@ -1,7 +1,11 @@
 import AdminLayout from "../../components/AdminLayout";
 import { Monitor, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const AdminProducts = () => {
+  
+  const navigate = useNavigate();
+
   return (
     <AdminLayout>
       <div className="mb-8">
@@ -12,7 +16,9 @@ const AdminProducts = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-900">All Products</h2>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+          <button 
+            onClick={() => navigate("/admin/products/new")}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
             <Plus size={16} />
             <span>Add Product</span>
           </button>
