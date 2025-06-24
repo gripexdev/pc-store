@@ -1,5 +1,5 @@
 import AdminLayout from "../../components/AdminLayout";
-import { Monitor, Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Monitor, Plus, Search, ChevronLeft, ChevronRight, Trash2, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { productService, Product, PaginationInfo } from "../../services/productService";
@@ -22,6 +22,18 @@ const AdminProducts = () => {
   const [currentPage, setCurrentPage] = useState(1);
   // Timeout for debouncing search input
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  // State for delete confirmation dialog
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    productId: string | null;
+    productName: string;
+    isDeleting: boolean;
+  }>({
+    isOpen: false,
+    productId: null,
+    productName: "",
+    isDeleting: false,
+  });
 
   // Fetch products whenever the current page changes
   useEffect(() => {
@@ -72,6 +84,52 @@ const AdminProducts = () => {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
+    });
+  };
+
+  // Handle product deletion with confirmation
+  const handleDeleteProduct = (productId: string, productName: string) => {
+    setDeleteDialog({
+      isOpen: true,
+      productId,
+      productName,
+      isDeleting: false,
+    });
+  };
+
+  // Confirm and execute product deletion
+  const confirmDeleteProduct = async () => {
+    if (!deleteDialog.productId) return;
+
+    try {
+      setDeleteDialog(prev => ({ ...prev, isDeleting: true }));
+      
+      // Call the product service to delete the product
+      await productService.deleteProduct(deleteDialog.productId);
+      
+      // Close the dialog
+      setDeleteDialog({
+        isOpen: false,
+        productId: null,
+        productName: "",
+        isDeleting: false,
+      });
+      
+      // Refresh the products list
+      fetchProducts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete product");
+      setDeleteDialog(prev => ({ ...prev, isDeleting: false }));
+    }
+  };
+
+  // Cancel delete operation
+  const cancelDeleteProduct = () => {
+    setDeleteDialog({
+      isOpen: false,
+      productId: null,
+      productName: "",
+      isDeleting: false,
     });
   };
 
@@ -170,6 +228,7 @@ const AdminProducts = () => {
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
@@ -191,6 +250,25 @@ const AdminProducts = () => {
                       <td className="px-4 py-2 text-gray-700">${product.price.toFixed(2)}</td>
                       <td className="px-4 py-2 text-gray-700">{product.stock}</td>
                       <td className="px-4 py-2 text-gray-700">{formatDate(product.createdAt)}</td>
+                      <td className="px-4 py-2">
+                        {/* Action buttons */}
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => navigate(`/admin/products/edit/${product._id}`)}
+                            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                            title="Edit product"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(product._id, product.name)}
+                            className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                            title="Delete product"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -199,21 +277,40 @@ const AdminProducts = () => {
             {/* Responsive grid for mobile (show cards instead of table) */}
             <div className="grid grid-cols-1 gap-4 sm:hidden mb-6">
               {products.map((product) => (
-                <div key={product._id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 flex items-center space-x-4">
-                  {/* Product image or fallback icon */}
-                  <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-gray-200 rounded">
-                    {product.images && product.images.length > 0 ? (
-                      <img src={product.images[0]} alt={product.name} className="w-16 h-16 object-cover rounded" />
-                    ) : (
-                      <Monitor size={24} className="text-gray-400" />
-                    )}
+                <div key={product._id} className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                  <div className="flex items-center space-x-4 mb-3">
+                    {/* Product image or fallback icon */}
+                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-gray-200 rounded">
+                      {product.images && product.images.length > 0 ? (
+                        <img src={product.images[0]} alt={product.name} className="w-16 h-16 object-cover rounded" />
+                      ) : (
+                        <Monitor size={24} className="text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-gray-900 truncate">{product.name}</div>
+                      <div className="text-sm text-gray-700 truncate">{product.brand}</div>
+                      <div className="text-xs text-gray-500 truncate">{typeof product.category === 'object' && product.category ? product.category.name : ''}</div>
+                      <div className="text-xs text-gray-500">${product.price.toFixed(2)} | Stock: {product.stock}</div>
+                      <div className="text-xs text-gray-400">{formatDate(product.createdAt)}</div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 truncate">{product.name}</div>
-                    <div className="text-sm text-gray-700 truncate">{product.brand}</div>
-                    <div className="text-xs text-gray-500 truncate">{typeof product.category === 'object' && product.category ? product.category.name : ''}</div>
-                    <div className="text-xs text-gray-500">${product.price.toFixed(2)} | Stock: {product.stock}</div>
-                    <div className="text-xs text-gray-400">{formatDate(product.createdAt)}</div>
+                  {/* Action buttons for mobile */}
+                  <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-200">
+                    <button
+                      onClick={() => navigate(`/admin/products/edit/${product._id}`)}
+                      className="flex items-center space-x-1 px-3 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded text-sm transition-colors"
+                    >
+                      <Edit size={14} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteProduct(product._id, product.name)}
+                      className="flex items-center space-x-1 px-3 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded text-sm transition-colors"
+                    >
+                      <Trash2 size={14} />
+                      <span>Delete</span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -280,6 +377,55 @@ const AdminProducts = () => {
           </>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteDialog.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 size={20} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Product</h3>
+                <p className="text-sm text-gray-600">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete <span className="font-semibold">"{deleteDialog.productName}"</span>? 
+              This will also delete all associated images from Cloudinary.
+            </p>
+            
+            <div className="flex items-center justify-end space-x-3">
+              <button
+                onClick={cancelDeleteProduct}
+                disabled={deleteDialog.isDeleting}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteProduct}
+                disabled={deleteDialog.isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center space-x-2"
+              >
+                {deleteDialog.isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    <span>Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

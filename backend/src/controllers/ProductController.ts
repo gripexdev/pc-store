@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Product from "../models/Product";
+import cloudinary from "../utils/cloudinary";
 
 /**
  * Controller to create a new product
@@ -90,5 +91,82 @@ export const getAllProducts = async (req: Request, res: Response): Promise<void>
   } catch (err: any) {
     console.error("Error fetching products:", err);
     res.status(500).json({ message: err.message || "Failed to fetch products" });
+  }
+};
+
+/**
+ * Controller to delete a product and its associated images from Cloudinary
+ * @param req - Express request object containing product ID in params
+ * @param res - Express response object
+ */
+export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    // Validate that product ID is provided
+    if (!id) {
+      res.status(400).json({ message: "Product ID is required" });
+      return;
+    }
+
+    // Find the product first to get its images
+    const product = await Product.findById(id);
+    
+    if (!product) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    // Delete associated images from Cloudinary if they exist
+    if (product.images && product.images.length > 0) {
+      // Extract public IDs from Cloudinary URLs and delete them
+      const deletePromises = product.images.map(async (imageUrl: string) => {
+        try {
+          // Extract public_id from Cloudinary URL
+          const urlParts = imageUrl.split('/');
+          const uploadIndex = urlParts.findIndex(part => part === 'upload');
+          
+          if (uploadIndex === -1) {
+            console.warn('Invalid Cloudinary URL format:', imageUrl);
+            return;
+          }
+          
+          // Get everything after 'upload' and before the file extension
+          const pathAfterUpload = urlParts.slice(uploadIndex + 1).join('/');
+          
+          // Remove version prefix if present (e.g., v1234567890/)
+          const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+          
+          // Remove file extension
+          const publicId = pathWithoutVersion.replace(/\.[^/.]+$/, '');
+          
+          // Delete from Cloudinary
+          const result = await cloudinary.uploader.destroy(publicId);
+          console.log(`Deleted image ${publicId} from Cloudinary:`, result.result);
+        } catch (error) {
+          console.error('Error deleting image from Cloudinary:', error);
+          // Continue with other images even if one fails
+        }
+      });
+
+      // Wait for all image deletions to complete
+      await Promise.all(deletePromises);
+    }
+
+    // Delete the product from the database
+    const deletedProduct = await Product.findByIdAndDelete(id);
+    
+    if (!deletedProduct) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    res.json({ 
+      message: "Product deleted successfully",
+      deletedProduct 
+    });
+  } catch (err: any) {
+    console.error("Product deletion error:", err);
+    res.status(500).json({ message: err.message || "Internal server error during product deletion" });
   }
 }; 

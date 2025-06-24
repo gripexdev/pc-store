@@ -61,6 +61,18 @@ class ProductService {
     const endpoint = queryString ? `?${queryString}` : '';
     return this.request<ProductsResponse>(endpoint);
   }
+
+  /**
+   * Deletes a product by ID
+   * This will also delete associated images from Cloudinary
+   * @param productId - The ID of the product to delete
+   * @returns Promise that resolves when deletion is successful
+   */
+  async deleteProduct(productId: string): Promise<void> {
+    return this.request<void>(`/${productId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const productService = new ProductService(); 
