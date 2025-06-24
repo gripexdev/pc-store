@@ -169,4 +169,134 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
     console.error("Product deletion error:", err);
     res.status(500).json({ message: err.message || "Internal server error during product deletion" });
   }
+};
+
+/**
+ * Controller to update a product and manage image deletion from Cloudinary
+ * @param req - Express request object containing product ID in params and update data in body
+ * @param res - Express response object
+ */
+export const updateProduct = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { name, brand, description, category, price, stock, featured, images } = req.body;
+
+    // Validate that product ID is provided
+    if (!id) {
+      res.status(400).json({ message: "Product ID is required" });
+      return;
+    }
+
+    // Find the existing product to get current images
+    const existingProduct = await Product.findById(id);
+    
+    if (!existingProduct) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    // Validate required fields
+    if (!name || !brand || !category || !price) {
+      res.status(400).json({ message: "Missing required fields: name, brand, category, price" });
+      return;
+    }
+
+    // Process images array - accept both single image (string) and array of images
+    let newImageArray: string[] = [];
+    if (Array.isArray(images)) {
+      newImageArray = images;
+    } else if (typeof images === "string" && images.trim() !== "") {
+      newImageArray = [images];
+    }
+
+    // Check if images have changed and delete old images from Cloudinary
+    if (existingProduct.images && existingProduct.images.length > 0) {
+      // Get the first image from both arrays for comparison
+      const oldFirstImage = existingProduct.images[0];
+      const newFirstImage = newImageArray[0];
+
+      // If the first image has changed, delete the old one from Cloudinary
+      if (oldFirstImage && newFirstImage && oldFirstImage !== newFirstImage) {
+        try {
+          // Extract public_id from Cloudinary URL
+          const urlParts = oldFirstImage.split('/');
+          const uploadIndex = urlParts.findIndex(part => part === 'upload');
+          
+          if (uploadIndex !== -1) {
+            // Get everything after 'upload' and before the file extension
+            const pathAfterUpload = urlParts.slice(uploadIndex + 1).join('/');
+            
+            // Remove version prefix if present (e.g., v1234567890/)
+            const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+            
+            // Remove file extension
+            const publicId = pathWithoutVersion.replace(/\.[^/.]+$/, '');
+            
+            // Delete from Cloudinary
+            const result = await cloudinary.uploader.destroy(publicId);
+            console.log(`Deleted old image ${publicId} from Cloudinary:`, result.result);
+          }
+        } catch (error) {
+          console.error('Error deleting old image from Cloudinary:', error);
+          // Continue with update even if image deletion fails
+        }
+      }
+    }
+
+    // Update the product in the database
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      {
+        name,
+        brand,
+        description: description || "",
+        category,
+        price,
+        stock: stock || 0,
+        featured: featured || false,
+        images: newImageArray
+      },
+      { new: true, runValidators: true }
+    ).populate('category');
+
+    if (!updatedProduct) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    res.json(updatedProduct);
+  } catch (err: any) {
+    console.error("Product update error:", err);
+    res.status(500).json({ message: err.message || "Internal server error during product update" });
+  }
+};
+
+/**
+ * Controller to get a single product by ID
+ * @param req - Express request object containing product ID in params
+ * @param res - Express response object
+ */
+export const getProductById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    // Validate that product ID is provided
+    if (!id) {
+      res.status(400).json({ message: "Product ID is required" });
+      return;
+    }
+
+    // Find the product and populate the category
+    const product = await Product.findById(id).populate('category');
+    
+    if (!product) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    res.json(product);
+  } catch (err: any) {
+    console.error("Error fetching product:", err);
+    res.status(500).json({ message: err.message || "Failed to fetch product" });
+  }
 }; 

@@ -73,6 +73,29 @@ class ProductService {
       method: 'DELETE',
     });
   }
+
+  /**
+   * Updates a product by ID
+   * This will also handle image deletion from Cloudinary when a new image is uploaded
+   * @param productId - The ID of the product to update
+   * @param productData - The updated product data
+   * @returns Promise that resolves with the updated product
+   */
+  async updateProduct(productId: string, productData: Partial<Product>): Promise<Product> {
+    return this.request<Product>(`/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify(productData),
+    });
+  }
+
+  /**
+   * Gets a single product by ID
+   * @param productId - The ID of the product to fetch
+   * @returns Promise that resolves with the product data
+   */
+  async getProductById(productId: string): Promise<Product> {
+    return this.request<Product>(`/${productId}`);
+  }
 }
 
 export const productService = new ProductService(); 
