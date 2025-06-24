@@ -13,6 +13,17 @@ const AdminCategories = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    categoryId: string | null;
+    categoryName: string;
+    isDeleting: boolean;
+  }>({
+    isOpen: false,
+    categoryId: null,
+    categoryName: "",
+    isDeleting: false,
+  });
 
   useEffect(() => {
     fetchCategories();
@@ -52,16 +63,40 @@ const AdminCategories = () => {
     }
   };
 
-  const handleDeleteCategory = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete the category "${name}"?`)) {
-      try {
-        await categoryService.deleteCategory(id);
-        // Refresh the current page to show updated data
-        fetchCategories();
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Failed to delete category");
-      }
+  const handleDeleteCategory = (id: string, name: string) => {
+    setDeleteDialog({
+      isOpen: true,
+      categoryId: id,
+      categoryName: name,
+      isDeleting: false,
+    });
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!deleteDialog.categoryId) return;
+    try {
+      setDeleteDialog((prev) => ({ ...prev, isDeleting: true }));
+      await categoryService.deleteCategory(deleteDialog.categoryId);
+      setDeleteDialog({
+        isOpen: false,
+        categoryId: null,
+        categoryName: "",
+        isDeleting: false,
+      });
+      fetchCategories();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete category");
+      setDeleteDialog((prev) => ({ ...prev, isDeleting: false }));
     }
+  };
+
+  const cancelDeleteCategory = () => {
+    setDeleteDialog({
+      isOpen: false,
+      categoryId: null,
+      categoryName: "",
+      isDeleting: false,
+    });
   };
 
   const handlePageChange = (page: number) => {
@@ -277,6 +312,51 @@ const AdminCategories = () => {
           </>
         )}
       </div>
+
+      {deleteDialog.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 size={20} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Category</h3>
+                <p className="text-sm text-gray-600">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete <span className="font-semibold">"{deleteDialog.categoryName}"</span>?
+            </p>
+            <div className="flex items-center justify-end space-x-3">
+              <button
+                onClick={cancelDeleteCategory}
+                disabled={deleteDialog.isDeleting}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteCategory}
+                disabled={deleteDialog.isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center space-x-2"
+              >
+                {deleteDialog.isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    <span>Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };
