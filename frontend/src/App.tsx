@@ -5,6 +5,7 @@ import { PrivateRoute } from "./routes/PrivateRoute";
 import { UserRoute } from "./routes/UserRoute";
 import Checkout from "./pages/Checkout";
 import Home from "./pages/Home";
+import CategoryPage from "./pages/CategoryPage";
 import AdminDashboard from "./pages/admin";
 import AdminProducts from "./pages/admin/products";
 import AdminInventory from "./pages/admin/inventory";
@@ -27,9 +28,16 @@ function App() {
 				</div>
 			</header>
 
-			{/* Your Routes below */}
+			{/* Application Routes */}
 			<Routes>
+				{/* Public Routes */}
 				<Route path="/" element={<Home />} />
+				
+				{/* Category Page - Shows products from a specific category with pagination */}
+				{/* URL Pattern: /category/:categoryId */}
+				{/* Example: /category/507f1f77bcf86cd799439011 */}
+				<Route path="/category/:categoryId" element={<CategoryPage />} />
+				
         <Route 
 					path="/register" 
 					element={

@@ -63,6 +63,39 @@ class ProductService {
   }
 
   /**
+   * Fetches products filtered by a specific category with pagination and search support
+   * This method calls the backend API endpoint to get products belonging to a category
+   * 
+   * @param categoryId - The unique identifier of the category to filter by
+   * @param page - The page number for pagination (default: 1)
+   * @param limit - Number of products to return per page (default: 10)
+   * @param search - Optional search term to filter products by name, brand, or description
+   * @returns Promise<ProductsResponse> - Object containing products array and pagination metadata
+   * 
+   * @example
+   * // Get first page of products from "Graphics Cards" category
+   * const result = await productService.getProductsByCategory("507f1f77bcf86cd799439011", 1, 12);
+   * 
+   * // Search for "RTX" products in "Graphics Cards" category
+   * const result = await productService.getProductsByCategory("507f1f77bcf86cd799439011", 1, 12, "RTX");
+   */
+  async getProductsByCategory(categoryId: string, page: number = 1, limit: number = 10, search: string = ""): Promise<ProductsResponse> {
+    // Build query parameters for pagination and search
+    // Only include parameters that differ from defaults to keep URLs clean
+    const params = new URLSearchParams();
+    if (page > 1) params.append('page', page.toString());
+    if (limit !== 10) params.append('limit', limit.toString());
+    if (search.trim()) params.append('search', search.trim());
+    
+    // Construct the endpoint URL with category ID and query parameters
+    const queryString = params.toString();
+    const endpoint = `/category/${categoryId}${queryString ? `?${queryString}` : ''}`;
+    
+    // Make the API request and return the response
+    return this.request<ProductsResponse>(endpoint);
+  }
+
+  /**
    * Deletes a product by ID
    * This will also delete associated images from Cloudinary
    * @param productId - The ID of the product to delete

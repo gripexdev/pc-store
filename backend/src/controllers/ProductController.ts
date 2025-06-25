@@ -299,4 +299,76 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
     console.error("Error fetching product:", err);
     res.status(500).json({ message: err.message || "Failed to fetch product" });
   }
+};
+
+/**
+ * Controller to get products by category with pagination and search
+ * This endpoint allows filtering products by a specific category ID while providing
+ * pagination and search functionality for better user experience
+ * 
+ * @param req - Express request object containing:
+ *   - params.categoryId: The ID of the category to filter by
+ *   - query.page: Page number for pagination (default: 1)
+ *   - query.limit: Number of products per page (default: 10)
+ *   - query.search: Search term to filter products by name, brand, or description
+ * @param res - Express response object
+ * @returns Promise<void> - Sends JSON response with products and pagination info
+ */
+export const getProductsByCategory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Extract and validate query parameters with sensible defaults
+    const { categoryId } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = (req.query.search as string) || "";
+
+    // Validate that category ID is provided in the request
+    if (!categoryId) {
+      res.status(400).json({ message: "Category ID is required" });
+      return;
+    }
+
+    // Build MongoDB filter object for category and optional search
+    // Start with category filter as the base requirement
+    const filter: any = { category: categoryId };
+    
+    // If search term is provided, add case-insensitive search across multiple fields
+    if (search.trim()) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },        // Search in product name
+        { brand: { $regex: search, $options: "i" } },       // Search in brand name
+        { description: { $regex: search, $options: "i" } }, // Search in description
+      ];
+    }
+
+    // Get total count of products matching the filter for pagination metadata
+    // This is a fast count operation that doesn't fetch actual data
+    const totalProducts = await Product.countDocuments(filter);
+    const totalPages = Math.ceil(totalProducts / limit);
+    const skip = (page - 1) * limit;
+
+    // Fetch products with pagination, populate category info, and sort by creation date
+    const products = await Product.find(filter)
+      .populate('category')  // Include full category object instead of just ID
+      .sort({ createdAt: -1 })  // Newest products first
+      .skip(skip)           // Skip products from previous pages
+      .limit(limit);        // Limit to specified number of products
+
+    // Build pagination metadata for frontend navigation
+    const pagination = {
+      currentPage: page,
+      totalPages,
+      totalProducts,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      limit,
+    };
+
+    // Send successful response with products and pagination info
+    res.json({ products, pagination });
+  } catch (err: any) {
+    // Log error for debugging and send appropriate error response
+    console.error("Error fetching products by category:", err);
+    res.status(500).json({ message: err.message || "Failed to fetch products by category" });
+  }
 }; 
